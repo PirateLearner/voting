@@ -1,0 +1,8 @@
+*.pyc
+/home/craft
+.project
+.pydevproject
+bin/
+lib/
+include/
+local/
