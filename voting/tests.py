@@ -2,7 +2,10 @@ from django.test import TestCase
 
 from voting.models import Vote
 from blogging.models import BlogContent
+from django.test.client import RequestFactory
 
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 # Create your tests here.
 
 class VotingTests(TestCase):
@@ -10,10 +13,23 @@ class VotingTests(TestCase):
     fixtures = ['fixtures.json',]
     
     def setUp(self, *args, **kwargs):
-        pass
+        #create 2 new users
+        #load the blogging post into a variable
+        self.factory = RequestFactory()
+        self.author = User.objects.get(pk="1")
+        self.user1 = User.objects.create_user(username="User1", email="user1@users.com", password="user1")
+        self.article = BlogContent.objects.get(pk="1")
+        
     
     def tearDown(self):
-        pass
+        self.user1.delete()
+        self.user2.delete()
+        
+    def test_vote_model(self):
+        vote = Vote()
+        vote.object_id = self.article._get_pk_val()
+        vote.content_type = ContentType.objects.get_for_model(self.article)._get_pk_val()
+        vote.content_object = ContentType.objects.get_for_model(self.article)
     
     def test_load_votes(self):
         pass

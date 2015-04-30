@@ -231,5 +231,8 @@
 	
 	So, I fell back on to `django-voting` models (for they are more or less apt). What I would want though is, to not use Django Templates as a part of evolving methodology,
 	but integrate `Django-Rest-Framework` with it. And continuing with the tradition that I am trying to make, Unit tests should accompany what we do.  
-		
+
+7. Load the `blogging` app fixtures and prepare the demo site (using the blogging demo as base). We will build upon it.
+
+8. Let us try to create our first vote, in the unit test.		
    

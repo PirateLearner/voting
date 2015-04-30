@@ -46,9 +46,9 @@ INSTALLED_APPS = (
     'taggit',
     'crispy_forms',
     'ckeditor',
-    'annotations',
     'rest_framework',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'voting'
 )
 
 MIDDLEWARE_CLASSES = (
