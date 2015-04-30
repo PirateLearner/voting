@@ -23,14 +23,22 @@ class VotingTests(TestCase):
     
     def tearDown(self):
         self.user1.delete()
-        self.user2.delete()
         
     def test_vote_model(self):
         vote = Vote()
         vote.object_id = self.article._get_pk_val()
-        vote.content_type = ContentType.objects.get_for_model(self.article)._get_pk_val()
+        vote.content_type = ContentType.objects.get_for_model(self.article)
         vote.content_object = ContentType.objects.get_for_model(self.article)
-    
+        
+        vote.voter = self.user1
+        vote.vote = +1
+        
+        vote.save()
+        
+        vote_obj = Vote.objects.all()[0]
+        self.assertEqual(vote_obj._get_pk_val(), vote._get_pk_val(), "Primary Keys do not match")
+        
+        
     def test_load_votes(self):
         pass
     
