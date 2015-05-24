@@ -1,0 +1,37 @@
+{% if attribute_name %}
+
+{{ attribute }}
+
+{% else %}
+		<span class="hidden voting" data-id="{{ nodes.id }}" data-content-type="9"></span>
+		<h1 class="article-title"> 	{{ title }} </h1>
+		<span class="article-author"> by <a href="{{ author.get_absolute_url }}">{{ author.username|capfirst }}</a> </span>       	
+		<div class="article-actions">
+			<div class="article-actions__button">
+	       		<span class="glyphicon glyphicon-share-alt"></span>
+	       		<span class="icon-helper">
+	       			<a href="{{ bookmark.get_external_url }}" target="_blank" rel="nofollow">Visit Page</a>
+	       		</span>
+       		</div>
+       		<div class="article-actions__button text-muted vote" id="upvote">
+	       		<span class="glyphicon glyphicon-chevron-up"></span>
+	       		<span class="icon-helper" id="upvote_count">
+	       			0
+	       		</span>
+       		</div>
+       		<div class="article-actions__button text-muted vote" id="downvote">
+	       		<span class="glyphicon glyphicon-chevron-down"></span>
+	       		<span class="icon-helper" id="downvote_count">0	       			
+	       		</span>
+       		</div>	
+       		<span id="trigger-overlay" type="button" class="icon overlay-open pl-expand"></span>
+       	</div>	
+		<div id="commentable-container">
+		{% for field in attribute_list %}
+			{% autoescape off %}
+				{{ field.value }}
+			{% endautoescape %}		
+		{% endfor %}
+		</div>
+
+{% endif %}

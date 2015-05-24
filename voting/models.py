@@ -13,10 +13,18 @@ ZERO_VOTES_ALLOWED = getattr(settings, 'VOTING_ZERO_VOTES_ALLOWED', False)
 
 UPVOTE = +1
 DOWNVOTE = -1
-SCORES = (
-    (+1, '+1'),
-    (-1, '-1'),
-)       
+if not ZERO_VOTES_ALLOWED:
+    SCORES = (
+        (+1, '+1'),
+        (-1, '-1'),
+    )
+else:
+    SCORES = (
+        (+1, '+1'),
+        (-1, '-1'),
+        (0, '0'),
+    )           
+
 
 class VoteManager(models.Manager):
     def get_score(self, obj):
@@ -29,13 +37,16 @@ class VoteManager(models.Manager):
         is a reflection of its popularity, and then its score matters.
         """
         content_type = ContentType.objects.get_for_model(obj)
-        result = self.objects.filter(content_type=content_type,
-                                     object_id=obj._get_pk_val()).aggregate(
-                                                                            score=Sum('vote'),
-                                                                            num_votes=Count('vote'))
+        result = self.filter(content_type=content_type,
+                             object_id=obj._get_pk_val()).aggregate(
+                                                                    score=Sum('vote'),
+                                                                    num_votes=Count('vote'))
         #It may happen that there has been no voting on this object so far.
         if result['score'] is None:
             result['score'] = 0
+        
+        result['upvotes'] = self.get_upvotes(obj)
+        result['downvotes'] = self.get_downvotes(obj)
         
         return result
     
@@ -53,7 +64,7 @@ class VoteManager(models.Manager):
         # If that does not exist, then it is the first time we're creating it
         # If it does, then just update the previous one
         try:
-            vote_obj = self.get(user=user, content_type=content_type, object_id=obj._get_pk_val())
+            vote_obj = self.get(voter=user, content_type=content_type, object_id=obj._get_pk_val())
             if vote == 0 and not ZERO_VOTES_ALLOWED:
                 vote_obj.delete()
             else:
@@ -66,12 +77,12 @@ class VoteManager(models.Manager):
                 if not ZERO_VOTES_ALLOWED and vote == 0:
                     # This shouldn't be happening actually
                     return
-                vote_obj = self.create(user=user, content_type=content_type, object_id=obj._get_pk_val, vote=vote)                        
+                vote_obj = self.create(voter=user, content_type=content_type, object_id=obj._get_pk_val(), vote=vote)                        
             except:
                 print '{file}: something went wrong in creating a vote object at {line}'.format(file=str('__FILE__'), line=str('__LINE__'))
                 raise ObjectDoesNotExist    
         
-        
+        return vote_obj
     
     def get_top(self, model, limit=10, inverted=False):
         """
@@ -90,16 +101,20 @@ class VoteManager(models.Manager):
         
         #We have a iterable list of objects of the requested model and their respective scores
         # Use in_bulk() to avoid O(limit) db hits.
-        objects = model.objects.in_bulk([item['object_id'] for item in results[:limit]])
+        class_name = content_type.model_class()
+        objects = class_name.objects.in_bulk([item['object_id'] for item in results[:limit]])
 
         # Yield each object, score pair. Because of the lazy nature of generic
         # relations, missing objects are silently ignored.
+               
         for item in results[:limit]:
             id, score = item['object_id'], item['score']
+                        
             if not score:
                 continue
-            if id in objects:
-                yield objects[id], int(score)
+            
+            if int(id) in objects:
+                yield objects[int(id)], int(score)
         
     def get_bottom(self, model, limit):
         """
@@ -119,11 +134,11 @@ class VoteManager(models.Manager):
             return None
         content_object = ContentType.objects.get_for_model(obj)
         try:
-            vote = self.objects.get(user=user, content_object=content_object, object_id=obj._get_pk_val())
+            vote = self.get(voter=user, content_type=content_object, object_id=obj._get_pk_val())
       
         except ObjectDoesNotExist:
-            print 'No vote by {user} on {object}'.format(user=user, object=obj)
-            vote = None
+            #print 'No vote by {user} on {object}'.format(user=user, object=obj)
+            return None
             
         return vote
     
@@ -131,7 +146,10 @@ class VoteManager(models.Manager):
         """
         Get all the objects on which the user has voted
         """
-        return self.get(user=user)
+        if not user.is_authenticated():
+            return None
+        #TODO: This one will need more refinement.
+        return self.filter(voter=user)
         
     
     def get_upvotes(self, obj):
@@ -139,9 +157,9 @@ class VoteManager(models.Manager):
         Gets the number of upvotes made on the object by all users
         """
         content_type = ContentType.objects.get_for_model(obj)
-        
-        votes = self.objects.filter(content_type=content_type, object_id=obj._get_pk_val(), vote__exact=UPVOTE).aggregate(upvotes=Sum('votes'))
-        
+               
+        votes = self.filter(content_type=content_type, object_id=obj._get_pk_val(), vote__exact=UPVOTE).aggregate(upvotes=Sum('vote'))
+                
         if votes['upvotes'] is None:
             votes['upvotes'] = 0
 
@@ -153,12 +171,12 @@ class VoteManager(models.Manager):
         """
         content_type = ContentType.objects.get_for_model(obj)
         
-        votes = self.objects.filter(content_type=content_type, object_id=obj._get_pk_val(), vote__exact=DOWNVOTE).aggregate(downvotes=Sum('votes'))
+        votes = self.filter(content_type=content_type, object_id=obj._get_pk_val(), vote__exact=DOWNVOTE).aggregate(downvotes=Sum('vote'))
         
         if votes['downvotes'] is None:
             votes['downvotes'] = 0
             
-        return votes['downvotes']
+        return -votes['downvotes']
     
 class Vote(models.Model):
     
@@ -168,10 +186,13 @@ class Vote(models.Model):
     content_object = GenericForeignKey(ct_field="content_type", fk_field="object_id")
     
     #Vote made by User
-    voter = models.ForeignKey(User, related_name="Voter")
+    voter = models.ForeignKey(User, related_name="voted")
 
     #Vote value
     vote = models.SmallIntegerField(choices=SCORES)
+    
+    #For weighted treatement of experienced user's opinion    
+    score = models.SmallIntegerField(default=0)
     
     vote_date = models.DateTimeField(auto_now_add=True)
     vote_modified = models.DateTimeField(auto_now=True)
@@ -185,10 +206,10 @@ class Vote(models.Model):
         return self.vote == -1
     
     def __unicode__(self):
-        return 'Voting Statistics'
+        return str(self.vote)
     
     def __str__(self):
-        return 'Voting Statistics'
+        return str(self.vote)
     
     class Meta:
         app_label = 'voting'

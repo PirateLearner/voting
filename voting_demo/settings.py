@@ -156,3 +156,5 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ]
 }
+
+VOTING_ZERO_VOTES_ALLOWED = True

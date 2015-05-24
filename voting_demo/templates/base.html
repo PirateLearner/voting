@@ -13,6 +13,7 @@
     <!-- Bootstrap core CSS -->
     <link href="{{ STATIC_URL }}css/bootstrap.css" rel="stylesheet">
     <link href="{{ STATIC_URL }}css/starter-template.css" rel="stylesheet">
+    <link href="{{ STATIC_URL }}css/styles.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -72,7 +73,8 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
-      
+    <script src="{{ STATIC_URL }}js/voting/getuser.js"></script>
+    <script src="{{ STATIC_URL }}js/voting/voting_detail.js"></script>  
     {% render_block "js" %}
     {% block extra_script %} 
 	{% endblock %}
